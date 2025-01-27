@@ -5,6 +5,14 @@ import pytz
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import time
+import os
+import json
+
+
+# Load the credentials from the environment variable
+google_credentials = os.environ.get("GOOGLE_CREDENTIALS")
+creds = ServiceAccountCredentials.from_json_keyfile_dict(json.loads(google_credentials), scope)
+
 
 # Canvas API configuration
 BASE_URL = "https://njit.instructure.com"
