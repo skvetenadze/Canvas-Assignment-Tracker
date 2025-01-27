@@ -85,7 +85,8 @@ def fetch_assignments():
 def upload_to_google_sheets(data):
     # Authenticate with Google Sheets
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
+    google_credentials = os.environ.get("GOOGLE_CREDENTIALS")
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(json.loads(google_credentials), scope)
     client = gspread.authorize(creds)
     
     # Open the Google Sheet
@@ -127,6 +128,7 @@ def upload_to_google_sheets(data):
     sheet.update(cell_range, rows)  # Corrected order: values first, then range
 
     print(f"Added {len(new_data)} new assignments to Google Sheet: {SHEET_NAME}, starting from row {start_row}")
+
 
 # Main function with periodic updates
 if __name__ == "__main__":
