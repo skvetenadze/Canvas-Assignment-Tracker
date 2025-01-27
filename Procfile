@@ -1,1 +1,1 @@
-worker: python canvas.py
+worker: python canvy.py
