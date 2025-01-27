@@ -34,11 +34,11 @@ This project is a Python-based **Assignment Tracker** that integrates with the C
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-username/assignment-tracker.git
+   git clone https://github.com/skvetenadze/canvas-assignment-tracker.git
    cd assignment-tracker
 
 2. Install Dependencies:
-  pip install -r requirements.txt
+  `pip install -r requirements.txt`
 
 ## Set up environment:
 
