@@ -57,6 +57,11 @@ assignment-tracker/
 ├── README.md          # Documentation
 └── LICENSE            # Licensing information
 
+### Google API Setup
+- Generate a `credentials.json` file by creating a service account in Google Cloud.
+- Place the file in the project directory (this file is excluded from version control for security).
+
+
 ## Usage
 The script runs continuously, fetching assignments from Canvas and syncing them with Google Sheets every 30 minutes.
 It ensures you're always up-to-date with upcoming assignments.
