@@ -17,7 +17,7 @@ creds = ServiceAccountCredentials.from_json_keyfile_dict(json.loads(google_crede
 
 # Canvas API configuration
 BASE_URL = "https://njit.instructure.com"
-TOKEN = "9342~k4vMnJBCvfXhcLC6LzKav3NxYHUKXYzHGCVwk7Wnz8n4AYxtYmtZM6Ca8XtZxfX2"  # Replace with your token
+TOKEN = os.environ.get("CANVAS_API_TOKEN")  
 
 # List of course IDs and names
 COURSES = {
