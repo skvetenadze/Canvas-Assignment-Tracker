@@ -8,6 +8,7 @@ import time
 import os
 import json
 
+scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 
 # Load the credentials from the environment variable
 google_credentials = os.environ.get("GOOGLE_CREDENTIALS")
