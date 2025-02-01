@@ -117,7 +117,7 @@ def upload_to_google_sheets(data):
             item["Subject/Course"],
             item["Status"],
             item["Due Date"],
-            item["Days Left"],
+            "", # Leave Days Left blank for the Google Sheets formula to calculate
             item["Priority Level"]
         ]
         for item in new_data
