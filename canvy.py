@@ -112,24 +112,25 @@ def upload_to_google_sheets(data):
 
     # Prepare data rows for new assignments
     rows = [
-        [
-            item["Assignment"],
-            item["Subject/Course"],
-            item["Status"],
-            item["Due Date"],
-            f"=E{start_row + new_data.index(item)}-TODAY()", # Leave Days Left blank for the Google Sheets formula to calculate
-            item["Priority Level"]
-        ]
-        for item in new_data
+    [
+        item["Assignment"],
+        item["Subject/Course"],
+        item["Status"],
+        item["Due Date"],
+        f"=E{start_row + new_data.index(item)}-TODAY()",  # Correct formula
+        item["Priority Level"]
     ]
+    for item in new_data
+]
 
-    # Update the entire range in one batch
-    end_row = start_row + len(rows) - 1
-    cell_range = f"B{start_row}:G{end_row}"
-    sheet.update(cell_range, rows)  # Corrected order: values first, then range
+# Update the entire range in one batch
+end_row = start_row + len(rows) - 1
+cell_range = f"B{start_row}:G{end_row}"
 
-    print(f"Added {len(new_data)} new assignments to Google Sheet: {SHEET_NAME}, starting from row {start_row}")
+# Update with USER_ENTERED input option for formulas
+sheet.update(cell_range, rows, value_input_option="USER_ENTERED")
 
+print(f"Added {len(new_data)} new assignments to Google Sheet: {SHEET_NAME}, starting from row {start_row}")
 
 # Main function with periodic updates
 if __name__ == "__main__":
