@@ -112,25 +112,25 @@ def upload_to_google_sheets(data):
 
     # Prepare data rows for new assignments
     rows = [
-    [
-        item["Assignment"],
-        item["Subject/Course"],
-        item["Status"],
-        item["Due Date"],
-        f"=E{start_row + new_data.index(item)}-TODAY()",  # Correct formula
-        item["Priority Level"]
+        [
+            item["Assignment"],
+            item["Subject/Course"],
+            item["Status"],
+            item["Due Date"],
+            f"=E{start_row + idx}-TODAY()",  # Correct formula, using idx instead of index()
+            item["Priority Level"]
+        ]
+        for idx, item in enumerate(new_data)  # Enumerate to track row index properly
     ]
-    for item in new_data
-]
 
-# Update the entire range in one batch
-end_row = start_row + len(rows) - 1
-cell_range = f"B{start_row}:G{end_row}"
+    # Update the entire range in one batch
+    end_row = start_row + len(rows) - 1
+    cell_range = f"B{start_row}:G{end_row}"
 
-# Update with USER_ENTERED input option for formulas
-sheet.update(cell_range, rows, value_input_option="USER_ENTERED")
+    # Update with USER_ENTERED input option for formulas
+    sheet.update(cell_range, rows, value_input_option="USER_ENTERED")
 
-print(f"Added {len(new_data)} new assignments to Google Sheet: {SHEET_NAME}, starting from row {start_row}")
+    print(f"Added {len(new_data)} new assignments to Google Sheet: {SHEET_NAME}, starting from row {start_row}")
 
 # Main function with periodic updates
 if __name__ == "__main__":
