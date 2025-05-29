@@ -22,10 +22,9 @@ TOKEN = os.environ.get("CANVAS_API_TOKEN")
 
 # List of course IDs and names
 COURSES = {
-    "47077": "MATH 111",   
-    "48627": "PHYS 111",   
-    "46225": "CS 113",     
-    "46881": "ENG 102"     
+    "51629": "IT 201",   
+    "50828": "MATH 112",   
+       
 }
 
 # Google Sheets configuration
