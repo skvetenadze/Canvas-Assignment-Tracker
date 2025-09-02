@@ -22,8 +22,12 @@ TOKEN = os.environ.get("CANVAS_API_TOKEN")
 
 # List of course IDs and names
 COURSES = {
-    "51629": "IT 201",   
-    "50828": "MATH 112",   
+    "53934": "COM 312",   
+    "54383": "CS 114", 
+    "52583": "HIST 213",  
+    "56718": "MATH 333",  
+    "57133": "PHYS 121A", 
+    "57118": "PHYS 121"   
        
 }
 
