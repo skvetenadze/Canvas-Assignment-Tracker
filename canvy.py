@@ -66,9 +66,9 @@ def fetch_assignments():
 
                         # Decide priority based on days left
                         # (<=0 counts as due today/overdue -> High)
-                        if days_left <= 2:
+                        if days_left <= 4:
                             priority = "High"
-                        elif days_left <= 7:
+                        elif days_left <= 9:
                             priority = "Standard"
                         else:
                             priority = "Low"
@@ -99,60 +99,79 @@ def fetch_assignments():
 
 
 def upload_to_google_sheets(data):
-    # Authenticate with Google Sheets
+    # Auth
     google_credentials = os.environ.get("GOOGLE_CREDENTIALS")
     creds = ServiceAccountCredentials.from_json_keyfile_dict(json.loads(google_credentials), scope)
     client = gspread.authorize(creds)
 
     # Open the Google Sheet
-    sheet = client.open(SHEET_NAME).sheet1  
+    sheet = client.open(SHEET_NAME).sheet1
 
-    # Retry fetching existing assignments
-    max_retries = 5  
+    # Retry fetching existing assignment titles (column B)
+    max_retries = 5
     for attempt in range(max_retries):
         try:
-            existing_assignments = sheet.col_values(2)  
-            break  
+            existing_titles = sheet.col_values(2)  # Column B = "Assignment"
+            break
         except APIError as e:
             print(f"Google API error: {e}. Retrying ({attempt + 1}/{max_retries})...")
-            time.sleep(10)  
+            time.sleep(10)
     else:
         print("Failed to fetch assignments after multiple retries.")
-        return  
-
-    # Filter out assignments already in Google Sheet
-    new_data = [item for item in data if item["Assignment"] not in existing_assignments]
-
-    if not new_data:
-        print("No new assignments to update.")
         return
 
-    # Find the first empty row
-    start_row = len(existing_assignments) + 1
+    # Map existing titles -> row numbers
+    title_to_row = {title: idx for idx, title in enumerate(existing_titles, start=1)}
 
-    # Prepare data for batch update
+    # Prepare updates for rows that already exist
+    value_updates = []  # batch_update ranges
+    new_rows_items = []  # items not yet in the sheet
+
+    for item in data:
+        title = item["Assignment"]
+        if title in title_to_row:
+            r = title_to_row[title]
+            # Update Days Left formula and Priority Level
+            value_updates.append({"range": f"F{r}", "values": [[f"=E{r}-TODAY()"]]})
+            value_updates.append({"range": f"G{r}", "values": [[item["Priority Level"]]]})
+        else:
+            new_rows_items.append(item)
+
+    # Apply updates for existing rows (if any)
+    if value_updates:
+        try:
+            sheet.batch_update(value_updates, value_input_option="USER_ENTERED")
+            print(f"Updated priority/days-left for {len(value_updates)//2} existing rows.")
+        except APIError as e:
+            print(f"Failed to update existing rows: {e}")
+
+    # If no new rows, we’re done
+    if not new_rows_items:
+        print("No new assignments to add.")
+        return
+
+    # Append new rows at the first empty row
+    start_row = len(existing_titles) + 1
     rows = [
         [
             item["Assignment"],
             item["Subject/Course"],
             item["Status"],
             item["Due Date"],
-            f"=E{start_row + new_data.index(item)}-TODAY()",  
+            f"=E{start_row + i}-TODAY()",  # Days Left formula
             item["Priority Level"]
         ]
-        for item in new_data
+        for i, item in enumerate(new_rows_items)
     ]
 
-    # Define cell range for update
     end_row = start_row + len(rows) - 1
     cell_range = f"B{start_row}:G{end_row}"
 
     try:
         sheet.update(cell_range, rows, value_input_option="USER_ENTERED")
-        print(f"Added {len(new_data)} new assignments to Google Sheet: {SHEET_NAME}, starting from row {start_row}")
+        print(f"Added {len(new_rows_items)} new assignments starting at row {start_row}.")
     except APIError as e:
-        print(f"Failed to update Google Sheets: {e}")
-
+        print(f"Failed to append new rows: {e}")
 
 if __name__ == "__main__":
     while True:
