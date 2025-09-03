@@ -46,44 +46,56 @@ def fetch_assignments():
 
     for course_id, course_name in COURSES.items():
         url = f"{BASE_URL}/api/v1/courses/{course_id}/assignments"
-        
+
         while url:
             response = requests.get(url, headers=headers)
             if response.status_code == 200:
                 assignments = response.json()
                 for assignment in assignments:
                     due_date = assignment.get("due_at", None)
-                    if due_date:
-                        due_date_dt = pd.to_datetime(due_date).tz_convert(local_timezone)
+                    if not due_date:
+                        continue
 
-                        # Check if the assignment is due within the next two weeks
-                        if now <= due_date_dt <= end_date:
-                            formatted_due_date = due_date_dt.strftime("%m/%d/%Y")
-                            days_left = (due_date_dt - now).days
+                    # Canvas returns UTC; convert to local
+                    due_date_dt = pd.to_datetime(due_date).tz_convert(local_timezone)
 
-                            all_assignments.append({
-                                "Assignment": assignment.get("name", "No Name").strip(),
-                                "Subject/Course": course_name,
-                                "Status": "Not Started",
-                                "Due Date": formatted_due_date,
-                                "Days Left": days_left,
-                                "Priority Level": "Standard",
-                                "Due Date Raw": due_date_dt  
-                            })
+                    # Only keep items due in the next 2 weeks
+                    if now <= due_date_dt <= end_date:
+                        formatted_due_date = due_date_dt.strftime("%m/%d/%Y")
+                        days_left = (due_date_dt - now).days
+
+                        # Decide priority based on days left
+                        # (<=0 counts as due today/overdue -> High)
+                        if days_left <= 2:
+                            priority = "High"
+                        elif days_left <= 7:
+                            priority = "Standard"
+                        else:
+                            priority = "Low"
+
+                        all_assignments.append({
+                            "Assignment": assignment.get("name", "No Name").strip(),
+                            "Subject/Course": course_name,
+                            "Status": "Not Started",
+                            "Due Date": formatted_due_date,
+                            "Days Left": days_left,
+                            "Priority Level": priority,
+                            "Due Date Raw": due_date_dt
+                        })
+
+                # paginate
                 url = response.links.get('next', {}).get('url')
             else:
                 print(f"Error fetching assignments for {course_name}: {response.status_code}")
                 print(response.text)
                 break
 
-    # Sort assignments by due date
+    # Sort by due date & drop helper key
     sorted_assignments = sorted(all_assignments, key=lambda x: x["Due Date Raw"])
-    
-    # Remove unnecessary raw datetime key
-    for assignment in sorted_assignments:
-        del assignment["Due Date Raw"]
-    
+    for a in sorted_assignments:
+        del a["Due Date Raw"]
     return sorted_assignments
+
 
 
 def upload_to_google_sheets(data):
