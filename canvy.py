@@ -104,62 +104,67 @@ def upload_to_google_sheets(data):
     creds = ServiceAccountCredentials.from_json_keyfile_dict(json.loads(google_credentials), scope)
     client = gspread.authorize(creds)
 
-    # Open the Google Sheet
     sheet = client.open(SHEET_NAME).sheet1
 
-    # Retry fetching existing assignment titles (column B)
+    # Get existing titles (B) and statuses (D)
     max_retries = 5
     for attempt in range(max_retries):
         try:
-            existing_titles = sheet.col_values(2)  # Column B = "Assignment"
+            existing_titles = sheet.col_values(2)  # B = Assignment
+            existing_statuses = sheet.col_values(4)  # D = Status
             break
         except APIError as e:
             print(f"Google API error: {e}. Retrying ({attempt + 1}/{max_retries})...")
             time.sleep(10)
     else:
-        print("Failed to fetch assignments after multiple retries.")
+        print("Failed to fetch existing assignments after multiple retries.")
         return
 
-    # Map existing titles -> row numbers
+    # Map title -> row
     title_to_row = {title: idx for idx, title in enumerate(existing_titles, start=1)}
 
-    # Prepare updates for rows that already exist
-    value_updates = []  # batch_update ranges
-    new_rows_items = []  # items not yet in the sheet
+    updates = []       # for existing rows (F and G)
+    new_rows_items = []  # for rows that don't exist yet
 
     for item in data:
         title = item["Assignment"]
         if title in title_to_row:
             r = title_to_row[title]
-            # Update Days Left formula and Priority Level
-            value_updates.append({"range": f"F{r}", "values": [[f"=E{r}-TODAY()"]]})
-            value_updates.append({"range": f"G{r}", "values": [[item["Priority Level"]]]})
+            # Guard against short columns
+            status_val = existing_statuses[r-1].strip().lower() if r-1 < len(existing_statuses) else ""
+
+            # ⛔ Skip rows marked Completed
+            if status_val == "completed":
+                continue
+
+            # ✅ Refresh Days Left (F) and Priority (G)
+            updates.append({"range": f"F{r}", "values": [[f"=E{r}-TODAY()"]]})
+            updates.append({"range": f"G{r}", "values": [[item["Priority Level"]]]})
         else:
             new_rows_items.append(item)
 
-    # Apply updates for existing rows (if any)
-    if value_updates:
+    # Apply updates to existing, non-completed rows
+    if updates:
         try:
-            sheet.batch_update(value_updates, value_input_option="USER_ENTERED")
-            print(f"Updated priority/days-left for {len(value_updates)//2} existing rows.")
+            sheet.batch_update(updates, value_input_option="USER_ENTERED")
+            print(f"Updated priority/days-left for {len(updates)//2} existing non-completed rows.")
         except APIError as e:
             print(f"Failed to update existing rows: {e}")
 
-    # If no new rows, we’re done
+    # Append new rows (default Status = Not Started)
     if not new_rows_items:
         print("No new assignments to add.")
         return
 
-    # Append new rows at the first empty row
     start_row = len(existing_titles) + 1
     rows = [
         [
             item["Assignment"],
             item["Subject/Course"],
-            item["Status"],
+            item["Status"],           # usually "Not Started"
             item["Due Date"],
-            f"=E{start_row + i}-TODAY()",  # Days Left formula
-            item["Priority Level"]
+            f"=E{start_row + i}-TODAY()",  # F: Days Left
+            item["Priority Level"]    # G: Priority
         ]
         for i, item in enumerate(new_rows_items)
     ]
@@ -172,6 +177,7 @@ def upload_to_google_sheets(data):
         print(f"Added {len(new_rows_items)} new assignments starting at row {start_row}.")
     except APIError as e:
         print(f"Failed to append new rows: {e}")
+
 
 if __name__ == "__main__":
     while True:
